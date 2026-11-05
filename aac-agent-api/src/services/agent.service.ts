@@ -32,11 +32,15 @@ class AgentService {
 		);
 		context.board = null;
 		const messages: AgentInputItem[] = [
-			...(state?.history ?? []),
+			// Take only last 10 messages to avoid exceeding token limit
+			...(state?.history ?? []).slice(-10),
 			{ content: query, role: "user" },
 		];
 
-		const result = await run(this.agent, messages, { context });
+		console.log(`Message length: ${messages.length}`);
+
+		const result = await run(this.agent, messages, { context, maxTurns: 2 });
+		console.log(`Total tokens: ${result.state.usage.totalTokens}`);
 		const reply = result.finalOutput?.trim();
 		if (!reply) throw new Error("No final output");
 		const updated = result.newItems.some(

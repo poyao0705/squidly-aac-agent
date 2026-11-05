@@ -9,7 +9,11 @@ const agent = new Agent<BoardContext>({
 		`${AAC_AGENT_INSTRUCTIONS}\n<saved_requirements>\n${JSON.stringify(context.requirements)}\n</saved_requirements>`,
 	model: "gpt-6-luna",
 	tools: [updateBoardContext],
-	modelSettings: { toolChoice: "required", parallelToolCalls: false },
+	modelSettings: {
+		toolChoice: "required",
+		parallelToolCalls: false,
+		maxTokens: 20000,
+	},
 	resetToolChoice: true,
 });
 

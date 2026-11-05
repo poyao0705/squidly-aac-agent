@@ -35,9 +35,7 @@ export const BoardContextSchema = z
 export type BoardRequirements = z.infer<typeof BoardRequirementsSchema>;
 export type BoardContext = z.infer<typeof BoardContextSchema>;
 
-export type RequestMessageState = {
+export type AgentContextState = {
 	history: AgentInputItem[];
 	context: BoardContext;
 };
-
-export type AgentContextState = RequestMessageState;
