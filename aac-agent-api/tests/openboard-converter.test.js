@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { OpenBoardSchema } from "../src/schema/openboard.ts";
-import { convertOpenBoard } from "../src/services/openboard-converter.ts";
+import { convertOpenBoard } from "../src/utils/openboard-converter.ts";
 
 function draft(labels = ["Water", "Eat", "Hello"], grid = { rows: 2, columns: 2 }) {
 	return OpenBoardSchema.parse({
@@ -37,6 +37,7 @@ test("conversion generates IDs with exact grid and image references", () => {
 	assert.deepEqual(board.buttons.map((button) => button.image_id), ["Water", "Eat", "Hello"]);
 	assert.deepEqual(board.images, ["Water", "Eat", "Hello"].map((id) => ({
 		id, name: id, search_keyword: "glass of water", url: `/images/${id}.png`,
+		width: 256, height: 256,
 	})));
 	const second = convertOpenBoard(input);
 	assert.equal(new Set([...ids, second.id, ...second.buttons.map((button) => button.id)]).size, 8);
@@ -57,8 +58,8 @@ test("conversion preserves draft content and queries without mutating the input"
 		assert.deepEqual(convertedProperties, properties);
 		assert.equal("image" in convertedButtons[index], false);
 		assert.equal(images[index].search_keyword, image.search_keyword);
-		assert.equal("width" in images[index], false);
-		assert.equal("height" in images[index], false);
+		assert.equal(images[index].width, 256);
+		assert.equal(images[index].height, 256);
 	}
 });
 
