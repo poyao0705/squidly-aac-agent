@@ -6,6 +6,7 @@ import { z } from "zod";
 import { agent } from "./agents/agent.js";
 
 import { AgentService } from "./services/agent.service.js";
+import "./utils/tracing.js";
 
 const app = new Hono();
 
