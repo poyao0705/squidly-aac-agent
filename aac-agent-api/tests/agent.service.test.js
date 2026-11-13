@@ -67,7 +67,7 @@ function toolFeedback(request) {
 test("tool updates are visible within the run and survive clarification turns", async () => {
 	const { service, requests } = scriptedService([
 		update(partial), reply("What grid size?"),
-		update(food), update(food, board), reply("Your board is ready."),
+		update(food, board), reply("Your board is ready."),
 	]);
 
 	assert.deepEqual(await service.generateBoard("A food board", "user_abc"), {
@@ -76,8 +76,25 @@ test("tool updates are visible within the run and survive clarification turns", 
 	const result = await service.generateBoard("3 rows and 4 columns", "user_abc");
 	assert.equal(result.message, "Your board is ready.");
 	assert.deepEqual(Object.keys(result).sort(), ["message", "outputBoard"]);
-	assert.deepEqual(result.outputBoard.grid, { rows: 3, columns: 4 });
-	assert.equal(result.outputBoard.buttons[0].image.search_keyword, "person eating");
+	const output = result.outputBoard;
+	assert.equal(output.format, "open-board-0.1");
+	assert.deepEqual(output.grid, {
+		rows: 3, columns: 4,
+		order: [
+			[output.buttons[0].id, null, null, null],
+			[null, null, null, null],
+			[null, null, null, null],
+		],
+	});
+	assert.equal(output.buttons[0].image_id, "Eat");
+	assert.equal("image" in output.buttons[0], false);
+	assert.deepEqual(output.images, [{
+		id: "Eat", name: "Eat", search_keyword: "person eating", url: "/images/Eat.png",
+	}]);
+	const savedBoard = service.userContextStore.get("user_abc").context.board;
+	assert.equal(savedBoard.buttons[0].image.search_keyword, "person eating");
+	assert.equal("id" in savedBoard, false);
+	assert.equal("format" in savedBoard, false);
 
 	assert.deepEqual(savedRequirements(requests[0]), { topic: null, rows: null, columns: null });
 	assert.deepEqual(toolFeedback(requests[1]), { topic: "Food", rows: null, columns: null });
@@ -108,7 +125,8 @@ test("corrections and explicit clearing replace a prior board without stale succ
 	});
 	await service.generateBoard("A 3x4 food board", "user_abc");
 	const correctedResult = await service.generateBoard("Actually, 2 rows", "user_abc");
-	assert.deepEqual(correctedResult.outputBoard.grid, { rows: 2, columns: 4 });
+	assert.equal(correctedResult.outputBoard.grid.rows, 2);
+	assert.equal(correctedResult.outputBoard.grid.columns, 4);
 	assert.deepEqual(await service.generateBoard("Forget the rows", "user_abc"), {
 		message: "How many rows?", outputBoard: null,
 	});
@@ -147,9 +165,15 @@ for (const [name, failedTurn] of [
 	["board with incomplete requirements", [update({ ...food, topic: null }, board)]],
 	["mismatched board rows", [update(food, { ...board, grid: { rows: 2, columns: 4 } })]],
 	["mismatched board columns", [update(food, { ...board, grid: { rows: 3, columns: 2 } })]],
+	["oversized board grid", [update({ ...food, rows: 101, columns: 100 }, {
+		...board, grid: { rows: 101, columns: 100 },
+	}), reply("Ready.")]],
+	["board conversion overflow", [update({ ...food, rows: 1, columns: 1 }, {
+		...board, grid: { rows: 1, columns: 1 }, buttons: [board.buttons[0], board.buttons[0]],
+	}), reply("Ready.")]],
 	["malformed tool arguments", [{ ...update(food), arguments: "{bad" }]],
 	["blank final text", [update(partial), reply("  \n")]],
-	["no final output before the SDK turn limit", [update(partial), ...Array.from({ length: 9 }, () => [])]],
+	["no final output before the SDK turn limit", [update(partial), []]],
 ]) {
 	test(`${name} does not overwrite committed context or history`, async () => {
 		const { service, requests } = scriptedService([

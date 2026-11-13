@@ -6,11 +6,14 @@ import {
 	type AgentContextState,
 	BoardContextSchema,
 } from "../schema/context.js";
-import type { OpenBoard } from "../schema/openboard.js";
+import {
+	type ConvertedOpenBoard,
+	convertOpenBoard,
+} from "../utils/openboard-converter.js";
 
 type AgentOutput = {
 	message: string | undefined;
-	outputBoard: OpenBoard | null;
+	outputBoard: ConvertedOpenBoard | null;
 };
 class AgentService {
 	private readonly agent: typeof aacAgent;
@@ -60,6 +63,7 @@ class AgentService {
 		const complete = topic !== null && rows !== null && columns !== null;
 		if (complete && board === null)
 			throw new Error("No board submitted for complete requirements");
+		const outputBoard = board === null ? null : convertOpenBoard(board);
 
 		// Save the updated context to the user context store
 		this.userContextStore.set(requestId, {
@@ -67,7 +71,7 @@ class AgentService {
 			context: updatedContext,
 		});
 
-		return { message: reply, outputBoard: updatedContext.board };
+		return { message: reply, outputBoard };
 	}
 }
 
